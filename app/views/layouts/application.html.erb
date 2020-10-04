@@ -10,11 +10,7 @@
   </head>
 
   <body>
-    <% flash.each do |key, msg| %>
-      <div class="text-center alert alert-<%= key == 'notice'? 'success':'danger'%>">
-        <%= msg %>
-      </div>
-    <% end %>
-    <%= yield %>
+    <%= render 'shared/header' %>
+    <%= render 'shared/main' %>
   </body>
 </html>
