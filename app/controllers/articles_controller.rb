@@ -1,6 +1,7 @@
 class ArticlesController < ApplicationController
   before_action :authenticate_user!, except: [:index, :show]
   before_action :set_article, only: [:show, :edit, :update, :destroy]
+  before_action :require_same_user, only: [:edit, :update, :destroy]
   def index
     @articles = Article.all
   end
@@ -25,24 +26,15 @@ class ArticlesController < ApplicationController
   end
 
   def edit
-    unless @article.user == current_user
-      flash[:alert] = "You can only edit your own articles."
-      redirect_to root_path
-    end
   end
 
   def update
-    unless @article.user == current_user
-      flash[:alert] = "You can only edit your own articles."
-      redirect_to root_path
+    if @article.update(article_params)
+      flash[:notice] = "Article has been updated"
+      redirect_to @article
     else
-      if @article.update(article_params)
-        flash[:notice] = "Article has been updated"
-        redirect_to @article
-      else
-        flash.now[:alert] = "Article has not been updated"
-        render :edit
-      end
+      flash.now[:alert] = "Article has not been updated"
+      render :edit
     end
   end
 
@@ -69,6 +61,13 @@ class ArticlesController < ApplicationController
 
   def article_params
     params.require(:article).permit(:title, :body)
+  end
+
+  def require_same_user
+    if current_user != @article.user
+      flash[:alert] = "You can only edit or delete your own articles"
+      redirect_to root_path
+    end
   end
 
 end

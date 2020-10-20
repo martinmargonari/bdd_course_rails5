@@ -8,6 +8,26 @@ RSpec.describe "Articles", type: :request do
     @article = Article.create!(title: "Title One", body: "Body of article one", user: @john)
   end
 
+  describe 'GET /articles/:id' do
+    context 'with existing article' do
+      before { get "/articles/#{@article.id}" }
+
+      it "handles existing article" do
+        expect(response.status).to eq 200
+      end
+    end
+
+    context 'with non-existing article' do
+      before { get "/articles/xxxx" }
+
+      it "handles non-existing article" do
+        expect(response.status).to eq 302
+        flash_message = "The article you are looking for could not be found"
+        expect(flash[:alert]).to eq flash_message
+      end
+    end
+  end
+
   describe 'GET /articles/:id/edit' do
     context 'with non-signed in user' do
       before { get "/articles/#{@article.id}/edit" }
@@ -27,7 +47,7 @@ RSpec.describe "Articles", type: :request do
 
       it "redirects to the home page" do
         expect(response.status).to eq 302
-        flash_message = "You can only edit your own articles."
+        flash_message = "You can only edit or delete your own articles"
         expect(flash[:alert]).to eq flash_message
       end
     end
@@ -44,22 +64,40 @@ RSpec.describe "Articles", type: :request do
     end
   end
 
-  describe 'GET /articles/:id' do
-    context 'with existing article' do
-      before { get "/articles/#{@article.id}" }
+  describe 'DELETE /articles/:id' do
+    context 'with non-signed in user' do
+      before { delete "/articles/#{@article.id}" }
 
-      it "handles existing article" do
-        expect(response.status).to eq 200
+      it "redirects to the sign in page" do
+        expect(response.status).to eq 302
+        flash_message = "You need to sign in or sign up before continuing."
+        expect(flash[:alert]).to eq flash_message
       end
     end
 
-    context 'with non-existing article' do
-      before { get "/articles/xxxx" }
+    context 'with signed in user who is non-owner' do
+      before do
+        login_as @fred
+        delete "/articles/#{@article.id}"
+      end
 
-      it "handles non-existing article" do
+      it "redirects to the home page" do
         expect(response.status).to eq 302
-        flash_message = "The article you are looking for could not be found"
+        flash_message = "You can only edit or delete your own articles"
         expect(flash[:alert]).to eq flash_message
+      end
+    end
+
+    context 'with signed in user who is owner successful edit' do
+      before do
+        login_as @john
+        delete "/articles/#{@article.id}"
+      end
+
+      it "successfully deletes article" do
+        expect(response.status).to eq 302
+        flash_message = "Article has been deleted"
+        expect(flash[:notice]).to eq flash_message
       end
     end
   end
